@@ -5,6 +5,7 @@ import flab.kr.catchfood.party.core.domain.Party
 import flab.kr.catchfood.party.poll.application.dto.PreferenceRequestDto
 import flab.kr.catchfood.party.poll.domain.*
 import flab.kr.catchfood.store.application.dto.RepresentativeMenuDto
+import flab.kr.catchfood.store.domain.StoreRepository
 import flab.kr.catchfood.user.domain.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -16,7 +17,8 @@ class MealPollService(
     private val preferenceRepository: PreferenceRepository,
     private val recommendStoreRepository: RecommendStoreRepository,
     private val voteRepository: VoteRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val storeRepository: StoreRepository
 ) {
 
     @Transactional
@@ -110,6 +112,40 @@ class MealPollService(
         )
 
         preferenceRepository.save(preference)
+
+        // Check if all party members have registered preferences and add recommended stores if they have
+        checkAndAddRecommendedStores(poll)
+    }
+
+    private fun checkAndAddRecommendedStores(poll: MealPoll) {
+        // Get all party members
+        val partyMembers = partyService.getPartyMembers(poll.party)
+
+        // Get all users who have registered preferences in this poll
+        val preferences = preferenceRepository.findByPoll(poll)
+        val usersWithPreferences = preferences.map { it.user.id }.distinct()
+
+        // Check if all party members have registered preferences
+        val allMembersRegisteredPreferences = partyMembers.all { member -> usersWithPreferences.contains(member.id) }
+
+        // If all members have registered preferences, add all stores as recommended stores
+        if (allMembersRegisteredPreferences) {
+            // Get all stores
+            val allStores = storeRepository.findAll()
+
+            // Check if there are already recommended stores for this poll
+            val existingRecommendedStores = recommendStoreRepository.findByPoll(poll)
+            if (existingRecommendedStores.isEmpty()) {
+                // Add all stores as recommended stores
+                allStores.forEach { store ->
+                    val recommendStore = RecommendStore(
+                        poll = poll,
+                        store = store
+                    )
+                    recommendStoreRepository.save(recommendStore)
+                }
+            }
+        }
     }
 
     @Transactional

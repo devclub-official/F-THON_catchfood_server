@@ -2,10 +2,12 @@ package flab.kr.catchfood.party.poll.application
 
 import flab.kr.catchfood.party.core.application.PartyService
 import flab.kr.catchfood.party.core.domain.Party
+import flab.kr.catchfood.party.poll.application.dto.PreferenceRequestDto
 import flab.kr.catchfood.party.poll.domain.*
 import flab.kr.catchfood.store.application.dto.RepresentativeMenuDto
 import flab.kr.catchfood.store.domain.Menu
 import flab.kr.catchfood.store.domain.Store
+import flab.kr.catchfood.store.domain.StoreRepository
 import flab.kr.catchfood.user.domain.User
 import flab.kr.catchfood.user.domain.UserRepository
 import org.junit.jupiter.api.Assertions.*
@@ -42,6 +44,9 @@ class MealPollServiceTest {
 
     @Mock
     private lateinit var userRepository: UserRepository
+
+    @Mock
+    private lateinit var storeRepository: StoreRepository
 
     @InjectMocks
     private lateinit var mealPollService: MealPollService
@@ -707,5 +712,93 @@ class MealPollServiceTest {
         // The poll status should be updated to DONE
         assertEquals(MealPollStatus.DONE, poll.status)
         verify(mealPollRepository).save(poll)
+    }
+
+    @Test
+    fun `addPreference should add recommended stores when all party members have registered preferences`() {
+        // Given
+        val partyId = 1L
+        val pollId = 1L
+        val userName1 = "김진홍"
+        val userName2 = "정종찬"
+        val preferenceRequest = PreferenceRequestDto("한식 좋아요")
+
+        val party = Party(id = partyId, name = "Test Party")
+        val poll = MealPoll(id = pollId, party = party, status = MealPollStatus.IN_PROGRESS)
+        val user1 = User(id = 1L, name = userName1)
+        val user2 = User(id = 2L, name = userName2)
+
+        // User1 already has a preference
+        val existingPreference = Preference(
+            id = 1L,
+            user = user1,
+            poll = poll,
+            content = "중식 좋아요"
+        )
+
+        // Set up party members (user1 and user2)
+        val partyMembers = listOf(user1, user2)
+
+        // Set up stores
+        val store1 = Store(
+            id = 1L,
+            name = "홍콩반점",
+            category = "중식",
+            distanceInMinutesByWalk = 10,
+            businessOpenHour = LocalTime.of(9, 0),
+            businessCloseHour = LocalTime.of(22, 0),
+            address = "서울시 강남구",
+            contact = "02-123-4567",
+            ratingStars = BigDecimal("4.5")
+        )
+
+        val store2 = Store(
+            id = 2L,
+            name = "김밥천국",
+            category = "한식",
+            distanceInMinutesByWalk = 5,
+            businessOpenHour = LocalTime.of(8, 0),
+            businessCloseHour = LocalTime.of(21, 0),
+            address = "서울시 강남구",
+            contact = "02-987-6543",
+            ratingStars = BigDecimal("4.0")
+        )
+
+        // Mock the behavior of the repositories and services
+        `when`(partyService.getParty(partyId)).thenReturn(party)
+        `when`(mealPollRepository.findById(pollId)).thenReturn(Optional.of(poll))
+        `when`(userRepository.findByName(userName2)).thenReturn(user2)
+        `when`(partyService.getPartyMembers(poll.party)).thenReturn(partyMembers)
+
+        // After user2 adds preference, both users have preferences
+        val user2Preference = Preference(id = 2L, poll = poll, user = user2, content = preferenceRequest.preference)
+        val allPreferences = listOf(existingPreference, user2Preference)
+
+        // When findByPoll is called for preferences, return both preferences
+        `when`(preferenceRepository.findByPoll(poll)).thenReturn(allPreferences)
+
+        // No recommended stores exist yet
+        `when`(recommendStoreRepository.findByPoll(poll)).thenReturn(emptyList())
+
+        // Return all stores when findAll is called
+        `when`(storeRepository.findAll()).thenReturn(listOf(store1, store2))
+
+        // When user2 adds preference (the last member to add preference)
+        mealPollService.addPreference(partyId, pollId, userName2, preferenceRequest)
+
+        // Then
+        verify(partyService).getParty(partyId)
+        verify(mealPollRepository).findById(pollId)
+        verify(userRepository).findByName(userName2)
+        verify(preferenceRepository).save(any(Preference::class.java))
+
+        // Verify that all party members' preferences are checked
+        verify(partyService).getPartyMembers(poll.party)
+        verify(preferenceRepository).findByPoll(poll)
+
+        // Verify that all stores are added as recommended stores
+        verify(storeRepository).findAll()
+        verify(recommendStoreRepository).findByPoll(poll)
+        verify(recommendStoreRepository, org.mockito.Mockito.times(2)).save(any(RecommendStore::class.java))
     }
 }
