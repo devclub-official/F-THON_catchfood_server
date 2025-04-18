@@ -368,7 +368,7 @@ class MealPollServiceTest {
 
         `when`(partyService.getParty(partyId)).thenReturn(party)
         `when`(mealPollRepository.findById(pollId)).thenReturn(Optional.of(poll))
-        `when`(recommendStoreRepository.findById(storeId)).thenReturn(Optional.of(recommendStore))
+        `when`(recommendStoreRepository.findByStoreId(storeId)).thenReturn(recommendStore)
         `when`(userRepository.findByName(userName)).thenReturn(user)
         `when`(voteRepository.findByPollAndStore(poll, recommendStore)).thenReturn(emptyList())
 
@@ -378,7 +378,7 @@ class MealPollServiceTest {
         // Then
         verify(partyService).getParty(partyId)
         verify(mealPollRepository).findById(pollId)
-        verify(recommendStoreRepository).findById(storeId)
+        verify(recommendStoreRepository).findByStoreId(storeId)
         verify(userRepository).findByName(userName)
         verify(voteRepository).findByPollAndStore(poll, recommendStore)
         verify(voteRepository).save(any(Vote::class.java))
@@ -402,7 +402,7 @@ class MealPollServiceTest {
         assertEquals("Party with id $partyId not found", exception.message)
         verify(partyService).getParty(partyId)
         verify(mealPollRepository, never()).findById(pollId)
-        verify(recommendStoreRepository, never()).findById(storeId)
+        verify(recommendStoreRepository, never()).findByStoreId(storeId)
         verify(userRepository, never()).findByName(userName)
         verify(voteRepository, never()).save(any(Vote::class.java))
     }
@@ -428,7 +428,7 @@ class MealPollServiceTest {
         assertEquals("Poll with id $pollId not found", exception.message)
         verify(partyService).getParty(partyId)
         verify(mealPollRepository).findById(pollId)
-        verify(recommendStoreRepository, never()).findById(storeId)
+        verify(recommendStoreRepository, never()).findByStoreId(storeId)
         verify(userRepository, never()).findByName(userName)
         verify(voteRepository, never()).save(any(Vote::class.java))
     }
@@ -456,7 +456,7 @@ class MealPollServiceTest {
         assertEquals("Poll with id $pollId does not belong to party with id $partyId", exception.message)
         verify(partyService).getParty(partyId)
         verify(mealPollRepository).findById(pollId)
-        verify(recommendStoreRepository, never()).findById(storeId)
+        verify(recommendStoreRepository, never()).findByStoreId(storeId)
         verify(userRepository, never()).findByName(userName)
         verify(voteRepository, never()).save(any(Vote::class.java))
     }
@@ -474,7 +474,7 @@ class MealPollServiceTest {
 
         `when`(partyService.getParty(partyId)).thenReturn(party)
         `when`(mealPollRepository.findById(pollId)).thenReturn(Optional.of(poll))
-        `when`(recommendStoreRepository.findById(storeId)).thenReturn(Optional.empty())
+        `when`(recommendStoreRepository.findByStoreId(storeId)).thenReturn(null)
 
         // When & Then
         val exception = assertThrows(IllegalArgumentException::class.java) {
@@ -484,7 +484,7 @@ class MealPollServiceTest {
         assertEquals("Recommended store with id $storeId not found", exception.message)
         verify(partyService).getParty(partyId)
         verify(mealPollRepository).findById(pollId)
-        verify(recommendStoreRepository).findById(storeId)
+        verify(recommendStoreRepository).findByStoreId(storeId)
         verify(userRepository, never()).findByName(userName)
         verify(voteRepository, never()).save(any(Vote::class.java))
     }
@@ -521,7 +521,7 @@ class MealPollServiceTest {
 
         `when`(partyService.getParty(partyId)).thenReturn(party)
         `when`(mealPollRepository.findById(pollId)).thenReturn(Optional.of(poll))
-        `when`(recommendStoreRepository.findById(storeId)).thenReturn(Optional.of(recommendStore))
+        `when`(recommendStoreRepository.findByStoreId(storeId)).thenReturn(recommendStore)
 
         // When & Then
         val exception = assertThrows(IllegalArgumentException::class.java) {
@@ -531,7 +531,7 @@ class MealPollServiceTest {
         assertEquals("Recommended store with id $storeId does not belong to poll with id $pollId", exception.message)
         verify(partyService).getParty(partyId)
         verify(mealPollRepository).findById(pollId)
-        verify(recommendStoreRepository).findById(storeId)
+        verify(recommendStoreRepository).findByStoreId(storeId)
         verify(userRepository, never()).findByName(userName)
         verify(voteRepository, never()).save(any(Vote::class.java))
     }
@@ -567,7 +567,7 @@ class MealPollServiceTest {
 
         `when`(partyService.getParty(partyId)).thenReturn(party)
         `when`(mealPollRepository.findById(pollId)).thenReturn(Optional.of(poll))
-        `when`(recommendStoreRepository.findById(storeId)).thenReturn(Optional.of(recommendStore))
+        `when`(recommendStoreRepository.findByStoreId(storeId)).thenReturn(recommendStore)
         `when`(userRepository.findByName(userName)).thenReturn(null)
 
         // When & Then
@@ -578,7 +578,7 @@ class MealPollServiceTest {
         assertEquals("User with name $userName not found", exception.message)
         verify(partyService).getParty(partyId)
         verify(mealPollRepository).findById(pollId)
-        verify(recommendStoreRepository).findById(storeId)
+        verify(recommendStoreRepository).findByStoreId(storeId)
         verify(userRepository).findByName(userName)
         verify(voteRepository, never()).save(any(Vote::class.java))
     }
@@ -622,7 +622,7 @@ class MealPollServiceTest {
 
         `when`(partyService.getParty(partyId)).thenReturn(party)
         `when`(mealPollRepository.findById(pollId)).thenReturn(Optional.of(poll))
-        `when`(recommendStoreRepository.findById(storeId)).thenReturn(Optional.of(recommendStore))
+        `when`(recommendStoreRepository.findByStoreId(storeId)).thenReturn(recommendStore)
         `when`(userRepository.findByName(userName)).thenReturn(user)
         `when`(voteRepository.findByPollAndStore(poll, recommendStore)).thenReturn(listOf(existingVote))
 
@@ -634,7 +634,7 @@ class MealPollServiceTest {
         assertEquals("User has already voted for this store in this poll", exception.message)
         verify(partyService).getParty(partyId)
         verify(mealPollRepository).findById(pollId)
-        verify(recommendStoreRepository).findById(storeId)
+        verify(recommendStoreRepository).findByStoreId(storeId)
         verify(userRepository).findByName(userName)
         verify(voteRepository).findByPollAndStore(poll, recommendStore)
         verify(voteRepository, never()).save(any(Vote::class.java))
@@ -686,7 +686,7 @@ class MealPollServiceTest {
         // Mock the behavior of the repositories and services
         `when`(partyService.getParty(partyId)).thenReturn(party)
         `when`(mealPollRepository.findById(pollId)).thenReturn(Optional.of(poll))
-        `when`(recommendStoreRepository.findById(storeId)).thenReturn(Optional.of(recommendStore))
+        `when`(recommendStoreRepository.findByStoreId(storeId)).thenReturn(recommendStore)
         `when`(userRepository.findByName(userName2)).thenReturn(user2)
         `when`(voteRepository.findByPollAndStore(poll, recommendStore)).thenReturn(emptyList())
         `when`(partyService.getPartyMembers(poll.party)).thenReturn(partyMembers)
@@ -704,7 +704,7 @@ class MealPollServiceTest {
         // Then
         verify(partyService).getParty(partyId)
         verify(mealPollRepository).findById(pollId)
-        verify(recommendStoreRepository).findById(storeId)
+        verify(recommendStoreRepository).findByStoreId(storeId)
         verify(userRepository).findByName(userName2)
         verify(voteRepository).findByPollAndStore(poll, recommendStore)
         verify(voteRepository).save(any(Vote::class.java))

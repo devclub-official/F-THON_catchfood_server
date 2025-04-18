@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository
 @Repository
 interface RecommendStoreRepository : JpaRepository<RecommendStore, Long> {
     fun findByPoll(poll: MealPoll): List<RecommendStore>
+    fun findByStoreId(storeId: Long): RecommendStore?
 }

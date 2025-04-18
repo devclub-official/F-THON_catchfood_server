@@ -193,8 +193,8 @@ class MealPollService(
             throw IllegalArgumentException("Poll with id $pollId does not belong to party with id $partyId")
         }
 
-        val recommendStore = recommendStoreRepository.findById(recommendedStoreId)
-            .orElseThrow { IllegalArgumentException("Recommended store with id $recommendedStoreId not found") }
+        val recommendStore = recommendStoreRepository.findByStoreId(recommendedStoreId)
+            ?: throw IllegalArgumentException("Recommended store with id $recommendedStoreId not found")
 
         if (recommendStore.poll.id != poll.id) {
             throw IllegalArgumentException("Recommended store with id $recommendedStoreId does not belong to poll with id $pollId")
