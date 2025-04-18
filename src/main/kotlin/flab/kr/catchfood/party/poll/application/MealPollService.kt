@@ -147,6 +147,27 @@ class MealPollService(
         )
 
         voteRepository.save(vote)
+
+        // Check if all party members have voted
+        checkAndUpdatePollStatus(poll)
+    }
+
+    private fun checkAndUpdatePollStatus(poll: MealPoll) {
+        // Get all party members
+        val partyMembers = partyService.getPartyMembers(poll.party)
+
+        // Get all users who have voted in this poll
+        val allVotes = voteRepository.findByPoll(poll)
+        val votedUsers = allVotes.map { it.user.id }.distinct()
+
+        // Check if all party members have voted
+        val allMembersVoted = partyMembers.all { member -> votedUsers.contains(member.id) }
+
+        // If all members have voted, update the poll status to DONE
+        if (allMembersVoted && poll.status != MealPollStatus.DONE) {
+            poll.status = MealPollStatus.DONE
+            mealPollRepository.save(poll)
+        }
     }
 }
 

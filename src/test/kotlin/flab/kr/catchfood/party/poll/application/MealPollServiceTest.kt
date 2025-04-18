@@ -630,4 +630,82 @@ class MealPollServiceTest {
         verify(voteRepository).findByPollAndStore(poll, recommendStore)
         verify(voteRepository, never()).save(any(Vote::class.java))
     }
+
+    @Test
+    fun `voteForRecommendedStore should update poll status to DONE when all members have voted`() {
+        // Given
+        val partyId = 1L
+        val pollId = 1L
+        val storeId = 1L
+        val userName1 = "김진홍"
+        val userName2 = "정종찬"
+
+        val party = Party(id = partyId, name = "Test Party")
+        val poll = MealPoll(id = pollId, party = party, status = MealPollStatus.IN_PROGRESS)
+        val user1 = User(id = 1L, name = userName1)
+        val user2 = User(id = 2L, name = userName2)
+
+        val store = Store(
+            id = 1L,
+            name = "홍콩반점",
+            category = "중식",
+            distanceInMinutesByWalk = 10,
+            businessOpenHour = LocalTime.of(9, 0),
+            businessCloseHour = LocalTime.of(22, 0),
+            address = "서울시 강남구",
+            contact = "02-123-4567",
+            ratingStars = BigDecimal("4.5")
+        )
+
+        val recommendStore = RecommendStore(
+            id = storeId,
+            poll = poll,
+            store = store
+        )
+
+        // User1 has already voted
+        val existingVote = Vote(
+            id = 1L,
+            poll = poll,
+            store = recommendStore,
+            user = user1
+        )
+
+        // Set up party members (user1 and user2)
+        val partyMembers = listOf(user1, user2)
+
+        // Mock the behavior of the repositories and services
+        `when`(partyService.getParty(partyId)).thenReturn(party)
+        `when`(mealPollRepository.findById(pollId)).thenReturn(Optional.of(poll))
+        `when`(recommendStoreRepository.findById(storeId)).thenReturn(Optional.of(recommendStore))
+        `when`(userRepository.findByName(userName2)).thenReturn(user2)
+        `when`(voteRepository.findByPollAndStore(poll, recommendStore)).thenReturn(emptyList())
+        `when`(partyService.getPartyMembers(poll.party)).thenReturn(partyMembers)
+
+        // After user2 votes, both users have voted
+        val user2Vote = Vote(id = 2L, poll = poll, store = recommendStore, user = user2)
+        val allVotes = listOf(existingVote, user2Vote)
+
+        // When findByPoll is called, return both votes (including the one that will be saved)
+        `when`(voteRepository.findByPoll(poll)).thenReturn(allVotes)
+
+        // When user2 votes (the last member to vote)
+        mealPollService.voteForRecommendedStore(partyId, pollId, storeId, userName2)
+
+        // Then
+        verify(partyService).getParty(partyId)
+        verify(mealPollRepository).findById(pollId)
+        verify(recommendStoreRepository).findById(storeId)
+        verify(userRepository).findByName(userName2)
+        verify(voteRepository).findByPollAndStore(poll, recommendStore)
+        verify(voteRepository).save(any(Vote::class.java))
+
+        // Verify that the poll status is updated to DONE
+        verify(partyService).getPartyMembers(poll.party)
+        verify(voteRepository).findByPoll(poll)
+
+        // The poll status should be updated to DONE
+        assertEquals(MealPollStatus.DONE, poll.status)
+        verify(mealPollRepository).save(poll)
+    }
 }
