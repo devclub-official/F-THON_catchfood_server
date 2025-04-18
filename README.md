@@ -147,7 +147,8 @@
         },
         "category": "중식",
         "distanceInMinutesByWalk": 10,
-        "votedMembers": ["김진홍"]
+        "votedMembers": ["김진홍"],
+        "isVotedByMe": true
       }
     ]
   },
