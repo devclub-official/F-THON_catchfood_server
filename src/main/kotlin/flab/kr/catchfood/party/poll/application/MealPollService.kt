@@ -193,12 +193,8 @@ class MealPollService(
             throw IllegalArgumentException("Poll with id $pollId does not belong to party with id $partyId")
         }
 
-        val recommendStore = recommendStoreRepository.findByStoreId(recommendedStoreId)
-            ?: throw IllegalArgumentException("Recommended store with id $recommendedStoreId not found")
-
-        if (recommendStore.poll.id != poll.id) {
-            throw IllegalArgumentException("Recommended store with id $recommendedStoreId does not belong to poll with id $pollId")
-        }
+        val recommendStore = recommendStoreRepository.findByStoreIdAndPoll(recommendedStoreId, poll)
+            ?: throw IllegalArgumentException("Recommended store with id $recommendedStoreId not found for poll with id $pollId")
 
         val user = userRepository.findByName(userName)
             ?: throw IllegalArgumentException("User with name $userName not found")
