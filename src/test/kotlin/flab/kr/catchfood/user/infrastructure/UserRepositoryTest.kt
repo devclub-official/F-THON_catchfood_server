@@ -1,6 +1,7 @@
 package flab.kr.catchfood.user.infrastructure
 
 import flab.kr.catchfood.user.domain.User
+import flab.kr.catchfood.user.domain.UserRepository
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -27,7 +28,7 @@ class UserRepositoryTest {
         // Then
         assertNotNull(savedUser.id)
         assertEquals("testUser", savedUser.name)
-        
+
         // Verify it's in the database
         val foundUser = entityManager.find(User::class.java, savedUser.id)
         assertNotNull(foundUser)
@@ -97,5 +98,29 @@ class UserRepositoryTest {
         assertEquals(2, users.size)
         assertTrue(users.any { it.name == "user1" })
         assertTrue(users.any { it.name == "user2" })
+    }
+
+    @Test
+    fun `findByName should return user when exists`() {
+        // Given
+        val user = User(name = "testUser")
+        entityManager.persist(user)
+        entityManager.flush()
+
+        // When
+        val foundUser = userRepository.findByName("testUser")
+
+        // Then
+        assertNotNull(foundUser)
+        assertEquals("testUser", foundUser?.name)
+    }
+
+    @Test
+    fun `findByName should return null when user does not exist`() {
+        // When
+        val foundUser = userRepository.findByName("nonExistingUser")
+
+        // Then
+        assertNull(foundUser)
     }
 }
