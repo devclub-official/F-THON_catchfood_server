@@ -52,4 +52,15 @@ class MealPollController(private val mealPollService: MealPollService) {
         mealPollService.addPreference(partyId, pollId, user.name, preferenceRequest)
         return ApiResponse.success()
     }
+
+    @PostMapping("/parties/{partyId}/polls/{pollId}/recommended-stores/{storeId}/vote")
+    fun voteForRecommendedStore(
+        @PathVariable partyId: Long,
+        @PathVariable pollId: Long,
+        @PathVariable storeId: Long,
+        @CurrentUser user: User
+    ): ApiResponse<Void> {
+        mealPollService.voteForRecommendedStore(partyId, pollId, storeId, user.name)
+        return ApiResponse.success()
+    }
 }

@@ -326,4 +326,308 @@ class MealPollServiceTest {
         verify(partyService).getParty(partyId)
         verify(mealPollRepository).findById(pollId)
     }
+
+    @Test
+    fun `voteForRecommendedStore should save vote successfully`() {
+        // Given
+        val partyId = 1L
+        val pollId = 1L
+        val storeId = 1L
+        val userName = "김진홍"
+
+        val party = Party(id = partyId, name = "Test Party")
+        val poll = MealPoll(id = pollId, party = party, status = MealPollStatus.IN_PROGRESS)
+        val user = User(id = 1L, name = userName)
+
+        val store = Store(
+            id = 1L,
+            name = "홍콩반점",
+            category = "중식",
+            distanceInMinutesByWalk = 10,
+            businessOpenHour = LocalTime.of(9, 0),
+            businessCloseHour = LocalTime.of(22, 0),
+            address = "서울시 강남구",
+            contact = "02-123-4567",
+            ratingStars = BigDecimal("4.5")
+        )
+
+        val recommendStore = RecommendStore(
+            id = storeId,
+            poll = poll,
+            store = store
+        )
+
+        `when`(partyService.getParty(partyId)).thenReturn(party)
+        `when`(mealPollRepository.findById(pollId)).thenReturn(Optional.of(poll))
+        `when`(recommendStoreRepository.findById(storeId)).thenReturn(Optional.of(recommendStore))
+        `when`(userRepository.findByName(userName)).thenReturn(user)
+        `when`(voteRepository.findByPollAndStore(poll, recommendStore)).thenReturn(emptyList())
+
+        // When
+        mealPollService.voteForRecommendedStore(partyId, pollId, storeId, userName)
+
+        // Then
+        verify(partyService).getParty(partyId)
+        verify(mealPollRepository).findById(pollId)
+        verify(recommendStoreRepository).findById(storeId)
+        verify(userRepository).findByName(userName)
+        verify(voteRepository).findByPollAndStore(poll, recommendStore)
+        verify(voteRepository).save(any(Vote::class.java))
+    }
+
+    @Test
+    fun `voteForRecommendedStore should throw exception when party not found`() {
+        // Given
+        val partyId = 999L
+        val pollId = 1L
+        val storeId = 1L
+        val userName = "김진홍"
+
+        `when`(partyService.getParty(partyId)).thenThrow(IllegalArgumentException("Party with id $partyId not found"))
+
+        // When & Then
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            mealPollService.voteForRecommendedStore(partyId, pollId, storeId, userName)
+        }
+
+        assertEquals("Party with id $partyId not found", exception.message)
+        verify(partyService).getParty(partyId)
+        verify(mealPollRepository, never()).findById(pollId)
+        verify(recommendStoreRepository, never()).findById(storeId)
+        verify(userRepository, never()).findByName(userName)
+        verify(voteRepository, never()).save(any(Vote::class.java))
+    }
+
+    @Test
+    fun `voteForRecommendedStore should throw exception when poll not found`() {
+        // Given
+        val partyId = 1L
+        val pollId = 999L
+        val storeId = 1L
+        val userName = "김진홍"
+
+        val party = Party(id = partyId, name = "Test Party")
+
+        `when`(partyService.getParty(partyId)).thenReturn(party)
+        `when`(mealPollRepository.findById(pollId)).thenReturn(Optional.empty())
+
+        // When & Then
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            mealPollService.voteForRecommendedStore(partyId, pollId, storeId, userName)
+        }
+
+        assertEquals("Poll with id $pollId not found", exception.message)
+        verify(partyService).getParty(partyId)
+        verify(mealPollRepository).findById(pollId)
+        verify(recommendStoreRepository, never()).findById(storeId)
+        verify(userRepository, never()).findByName(userName)
+        verify(voteRepository, never()).save(any(Vote::class.java))
+    }
+
+    @Test
+    fun `voteForRecommendedStore should throw exception when poll does not belong to party`() {
+        // Given
+        val partyId = 1L
+        val pollId = 1L
+        val storeId = 1L
+        val userName = "김진홍"
+
+        val party = Party(id = partyId, name = "Test Party")
+        val otherParty = Party(id = 2L, name = "Other Party")
+        val poll = MealPoll(id = pollId, party = otherParty, status = MealPollStatus.IN_PROGRESS)
+
+        `when`(partyService.getParty(partyId)).thenReturn(party)
+        `when`(mealPollRepository.findById(pollId)).thenReturn(Optional.of(poll))
+
+        // When & Then
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            mealPollService.voteForRecommendedStore(partyId, pollId, storeId, userName)
+        }
+
+        assertEquals("Poll with id $pollId does not belong to party with id $partyId", exception.message)
+        verify(partyService).getParty(partyId)
+        verify(mealPollRepository).findById(pollId)
+        verify(recommendStoreRepository, never()).findById(storeId)
+        verify(userRepository, never()).findByName(userName)
+        verify(voteRepository, never()).save(any(Vote::class.java))
+    }
+
+    @Test
+    fun `voteForRecommendedStore should throw exception when recommended store not found`() {
+        // Given
+        val partyId = 1L
+        val pollId = 1L
+        val storeId = 999L
+        val userName = "김진홍"
+
+        val party = Party(id = partyId, name = "Test Party")
+        val poll = MealPoll(id = pollId, party = party, status = MealPollStatus.IN_PROGRESS)
+
+        `when`(partyService.getParty(partyId)).thenReturn(party)
+        `when`(mealPollRepository.findById(pollId)).thenReturn(Optional.of(poll))
+        `when`(recommendStoreRepository.findById(storeId)).thenReturn(Optional.empty())
+
+        // When & Then
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            mealPollService.voteForRecommendedStore(partyId, pollId, storeId, userName)
+        }
+
+        assertEquals("Recommended store with id $storeId not found", exception.message)
+        verify(partyService).getParty(partyId)
+        verify(mealPollRepository).findById(pollId)
+        verify(recommendStoreRepository).findById(storeId)
+        verify(userRepository, never()).findByName(userName)
+        verify(voteRepository, never()).save(any(Vote::class.java))
+    }
+
+    @Test
+    fun `voteForRecommendedStore should throw exception when recommended store does not belong to poll`() {
+        // Given
+        val partyId = 1L
+        val pollId = 1L
+        val storeId = 1L
+        val userName = "김진홍"
+
+        val party = Party(id = partyId, name = "Test Party")
+        val poll = MealPoll(id = pollId, party = party, status = MealPollStatus.IN_PROGRESS)
+        val otherPoll = MealPoll(id = 2L, party = party, status = MealPollStatus.IN_PROGRESS)
+
+        val store = Store(
+            id = 1L,
+            name = "홍콩반점",
+            category = "중식",
+            distanceInMinutesByWalk = 10,
+            businessOpenHour = LocalTime.of(9, 0),
+            businessCloseHour = LocalTime.of(22, 0),
+            address = "서울시 강남구",
+            contact = "02-123-4567",
+            ratingStars = BigDecimal("4.5")
+        )
+
+        val recommendStore = RecommendStore(
+            id = storeId,
+            poll = otherPoll,
+            store = store
+        )
+
+        `when`(partyService.getParty(partyId)).thenReturn(party)
+        `when`(mealPollRepository.findById(pollId)).thenReturn(Optional.of(poll))
+        `when`(recommendStoreRepository.findById(storeId)).thenReturn(Optional.of(recommendStore))
+
+        // When & Then
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            mealPollService.voteForRecommendedStore(partyId, pollId, storeId, userName)
+        }
+
+        assertEquals("Recommended store with id $storeId does not belong to poll with id $pollId", exception.message)
+        verify(partyService).getParty(partyId)
+        verify(mealPollRepository).findById(pollId)
+        verify(recommendStoreRepository).findById(storeId)
+        verify(userRepository, never()).findByName(userName)
+        verify(voteRepository, never()).save(any(Vote::class.java))
+    }
+
+    @Test
+    fun `voteForRecommendedStore should throw exception when user not found`() {
+        // Given
+        val partyId = 1L
+        val pollId = 1L
+        val storeId = 1L
+        val userName = "nonexistentUser"
+
+        val party = Party(id = partyId, name = "Test Party")
+        val poll = MealPoll(id = pollId, party = party, status = MealPollStatus.IN_PROGRESS)
+
+        val store = Store(
+            id = 1L,
+            name = "홍콩반점",
+            category = "중식",
+            distanceInMinutesByWalk = 10,
+            businessOpenHour = LocalTime.of(9, 0),
+            businessCloseHour = LocalTime.of(22, 0),
+            address = "서울시 강남구",
+            contact = "02-123-4567",
+            ratingStars = BigDecimal("4.5")
+        )
+
+        val recommendStore = RecommendStore(
+            id = storeId,
+            poll = poll,
+            store = store
+        )
+
+        `when`(partyService.getParty(partyId)).thenReturn(party)
+        `when`(mealPollRepository.findById(pollId)).thenReturn(Optional.of(poll))
+        `when`(recommendStoreRepository.findById(storeId)).thenReturn(Optional.of(recommendStore))
+        `when`(userRepository.findByName(userName)).thenReturn(null)
+
+        // When & Then
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            mealPollService.voteForRecommendedStore(partyId, pollId, storeId, userName)
+        }
+
+        assertEquals("User with name $userName not found", exception.message)
+        verify(partyService).getParty(partyId)
+        verify(mealPollRepository).findById(pollId)
+        verify(recommendStoreRepository).findById(storeId)
+        verify(userRepository).findByName(userName)
+        verify(voteRepository, never()).save(any(Vote::class.java))
+    }
+
+    @Test
+    fun `voteForRecommendedStore should throw exception when user has already voted`() {
+        // Given
+        val partyId = 1L
+        val pollId = 1L
+        val storeId = 1L
+        val userName = "김진홍"
+
+        val party = Party(id = partyId, name = "Test Party")
+        val poll = MealPoll(id = pollId, party = party, status = MealPollStatus.IN_PROGRESS)
+        val user = User(id = 1L, name = userName)
+
+        val store = Store(
+            id = 1L,
+            name = "홍콩반점",
+            category = "중식",
+            distanceInMinutesByWalk = 10,
+            businessOpenHour = LocalTime.of(9, 0),
+            businessCloseHour = LocalTime.of(22, 0),
+            address = "서울시 강남구",
+            contact = "02-123-4567",
+            ratingStars = BigDecimal("4.5")
+        )
+
+        val recommendStore = RecommendStore(
+            id = storeId,
+            poll = poll,
+            store = store
+        )
+
+        val existingVote = Vote(
+            id = 1L,
+            poll = poll,
+            store = recommendStore,
+            user = user
+        )
+
+        `when`(partyService.getParty(partyId)).thenReturn(party)
+        `when`(mealPollRepository.findById(pollId)).thenReturn(Optional.of(poll))
+        `when`(recommendStoreRepository.findById(storeId)).thenReturn(Optional.of(recommendStore))
+        `when`(userRepository.findByName(userName)).thenReturn(user)
+        `when`(voteRepository.findByPollAndStore(poll, recommendStore)).thenReturn(listOf(existingVote))
+
+        // When & Then
+        val exception = assertThrows(IllegalStateException::class.java) {
+            mealPollService.voteForRecommendedStore(partyId, pollId, storeId, userName)
+        }
+
+        assertEquals("User has already voted for this store in this poll", exception.message)
+        verify(partyService).getParty(partyId)
+        verify(mealPollRepository).findById(pollId)
+        verify(recommendStoreRepository).findById(storeId)
+        verify(userRepository).findByName(userName)
+        verify(voteRepository).findByPollAndStore(poll, recommendStore)
+        verify(voteRepository, never()).save(any(Vote::class.java))
+    }
 }

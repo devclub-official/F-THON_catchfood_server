@@ -246,4 +246,43 @@ class MealPollControllerTest {
             .andExpect(jsonPath("$.status").value("FAIL"))
             .andExpect(jsonPath("$.message").isNotEmpty)
     }
+
+    @Test
+    fun `POST parties-id-polls-id-recommended-stores-id-vote should vote for a store and return success`() {
+        // Given
+        val partyId = 1L
+        val pollId = 1L
+        val storeId = 1L
+        val user = User(id = 1L, name = "testUser")
+
+        `when`(userService.getUserByName(user.name)).thenReturn(user)
+
+        // When & Then
+        mockMvc.perform(
+            post("/parties/$partyId/polls/$pollId/recommended-stores/$storeId/vote")
+                .header("X-User-Name", user.name)
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.status").value("SUCCESS"))
+            .andExpect(jsonPath("$.data").doesNotExist())
+            .andExpect(jsonPath("$.message").doesNotExist())
+
+        verify(mealPollService).voteForRecommendedStore(partyId, pollId, storeId, user.name)
+    }
+
+    @Test
+    fun `POST parties-id-polls-id-recommended-stores-id-vote should return unauthorized when user header is missing`() {
+        // Given
+        val partyId = 1L
+        val pollId = 1L
+        val storeId = 1L
+
+        // When & Then
+        mockMvc.perform(
+            post("/parties/$partyId/polls/$pollId/recommended-stores/$storeId/vote")
+        )
+            .andExpect(status().isUnauthorized)
+            .andExpect(jsonPath("$.status").value("FAIL"))
+            .andExpect(jsonPath("$.message").isNotEmpty)
+    }
 }

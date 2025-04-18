@@ -111,6 +111,43 @@ class MealPollService(
 
         preferenceRepository.save(preference)
     }
+
+    @Transactional
+    fun voteForRecommendedStore(partyId: Long, pollId: Long, recommendedStoreId: Long, userName: String) {
+        val party = partyService.getParty(partyId)
+        val poll = mealPollRepository.findById(pollId)
+            .orElseThrow { IllegalArgumentException("Poll with id $pollId not found") }
+
+        if (poll.party.id != party.id) {
+            throw IllegalArgumentException("Poll with id $pollId does not belong to party with id $partyId")
+        }
+
+        val recommendStore = recommendStoreRepository.findById(recommendedStoreId)
+            .orElseThrow { IllegalArgumentException("Recommended store with id $recommendedStoreId not found") }
+
+        if (recommendStore.poll.id != poll.id) {
+            throw IllegalArgumentException("Recommended store with id $recommendedStoreId does not belong to poll with id $pollId")
+        }
+
+        val user = userRepository.findByName(userName)
+            ?: throw IllegalArgumentException("User with name $userName not found")
+
+        // Check if the user has already voted for this store in this poll
+        val existingVotes = voteRepository.findByPollAndStore(poll, recommendStore)
+        val userAlreadyVoted = existingVotes.any { it.user.id == user.id }
+
+        if (userAlreadyVoted) {
+            throw IllegalStateException("User has already voted for this store in this poll")
+        }
+
+        val vote = Vote(
+            poll = poll,
+            store = recommendStore,
+            user = user
+        )
+
+        voteRepository.save(vote)
+    }
 }
 
 data class PartyPollsDto(
