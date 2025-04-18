@@ -3,6 +3,7 @@ package flab.kr.catchfood.party.poll.ui
 import flab.kr.catchfood.common.ui.dto.ApiResponse
 import flab.kr.catchfood.party.poll.application.MealPollService
 import flab.kr.catchfood.party.poll.application.PartyPollsDto
+import flab.kr.catchfood.party.poll.application.PollDetailsDto
 import flab.kr.catchfood.user.domain.User
 import flab.kr.catchfood.user.ui.annotation.CurrentUser
 import org.springframework.http.HttpStatus
@@ -28,5 +29,15 @@ class MealPollController(private val mealPollService: MealPollService) {
     ): ApiResponse<List<PartyPollsDto>> {
         val polls = mealPollService.getPartyPolls(id)
         return ApiResponse.success(listOf(polls))
+    }
+
+    @GetMapping("/parties/{partyId}/polls/{pollId}")
+    fun getPollDetails(
+        @PathVariable partyId: Long,
+        @PathVariable pollId: Long,
+        @CurrentUser user: User
+    ): ApiResponse<PollDetailsDto> {
+        val pollDetails = mealPollService.getPollDetails(partyId, pollId, user.name)
+        return ApiResponse.success(pollDetails)
     }
 }

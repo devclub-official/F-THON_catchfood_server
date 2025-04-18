@@ -12,12 +12,12 @@ class PartyMember(
 
     @MapsId("userId")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "USER_ID")
+    @JoinColumn(name = "USER_ID", nullable = false)
     val user: User,
 
     @MapsId("partyId")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "PARTY_ID")
+    @JoinColumn(name = "PARTY_ID", nullable = false)
     val party: Party
 )
 
