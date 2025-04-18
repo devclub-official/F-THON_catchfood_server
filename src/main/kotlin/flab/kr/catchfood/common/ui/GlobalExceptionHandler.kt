@@ -14,7 +14,7 @@ class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException::class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    fun handleValidationExceptions(ex: MethodArgumentNotValidException): ApiResponse<Any> {
+    fun handleValidationExceptions(ex: MethodArgumentNotValidException): ApiResponse<Void> {
         val errors = ex.bindingResult.allErrors.joinToString(", ") { error ->
             val fieldName = (error as? FieldError)?.field ?: ""
             val message = error.defaultMessage ?: ""
@@ -25,19 +25,19 @@ class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException::class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    fun handleIllegalArgumentException(ex: IllegalArgumentException): ApiResponse<Any> {
+    fun handleIllegalArgumentException(ex: IllegalArgumentException): ApiResponse<Void> {
         return ApiResponse.fail(ex.message ?: "Bad request")
     }
 
     @ExceptionHandler(UnauthorizedException::class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    fun handleUnauthorizedException(ex: UnauthorizedException): ApiResponse<Any> {
+    fun handleUnauthorizedException(ex: UnauthorizedException): ApiResponse<Void> {
         return ApiResponse.fail(ex.message ?: "Unauthorized")
     }
 
     @ExceptionHandler(Exception::class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    fun handleAllExceptions(ex: Exception): ApiResponse<Any> {
+    fun handleAllExceptions(ex: Exception): ApiResponse<Void> {
         return ApiResponse.fail("An unexpected error occurred: ${ex.message}")
     }
 }

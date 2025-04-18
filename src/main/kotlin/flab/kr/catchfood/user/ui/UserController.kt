@@ -15,7 +15,7 @@ class UserController(private val userService: UserService) {
 
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)
-    fun signup(@Valid @RequestBody request: SignupRequest): ApiResponse<Any> {
+    fun signup(@Valid @RequestBody request: SignupRequest): ApiResponse<Void> {
         userService.signup(request)
         return ApiResponse.success()
     }
@@ -37,7 +37,7 @@ class UserController(private val userService: UserService) {
     fun updateMyPreferences(
         @CurrentUser user: User,
         @Valid @RequestBody preferences: UserPreferencesDto
-    ): ApiResponse<Any> {
+    ): ApiResponse<Void> {
         userService.updateUserPreferences(user, preferences)
         return ApiResponse.success()
     }
