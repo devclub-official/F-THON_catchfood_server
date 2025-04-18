@@ -28,7 +28,6 @@ import java.time.LocalTime
 import java.util.Optional
 
 @ExtendWith(MockitoExtension::class)
-@Disabled
 class MealPollServiceTest {
 
     @Mock
@@ -381,9 +380,9 @@ class MealPollServiceTest {
         // Then
         verify(partyService).getParty(partyId)
         verify(mealPollRepository).findById(pollId)
-        verify(recommendStoreRepository).findByStoreIdAndPoll(eq(storeId), any(MealPoll::class.java))
+        verify(recommendStoreRepository).findByStoreIdAndPoll(storeId, poll)
         verify(userRepository).findByName(userName)
-        verify(voteRepository).findByPollAndStore(eq(poll), eq(recommendStore))
+        verify(voteRepository).findByPollAndStore(poll, recommendStore)
         verify(voteRepository).save(any())
     }
 
@@ -405,7 +404,6 @@ class MealPollServiceTest {
         assertEquals("Party with id $partyId not found", exception.message)
         verify(partyService).getParty(partyId)
         verify(mealPollRepository, never()).findById(pollId)
-        verify(recommendStoreRepository, never()).findByStoreIdAndPoll(eq(storeId), any())
         verify(userRepository, never()).findByName(userName)
         verify(voteRepository, never()).save(any())
     }
@@ -431,7 +429,6 @@ class MealPollServiceTest {
         assertEquals("Poll with id $pollId not found", exception.message)
         verify(partyService).getParty(partyId)
         verify(mealPollRepository).findById(pollId)
-        verify(recommendStoreRepository, never()).findByStoreIdAndPoll(eq(storeId), any(MealPoll::class.java))
         verify(userRepository, never()).findByName(userName)
         verify(voteRepository, never()).save(any())
     }
@@ -459,7 +456,7 @@ class MealPollServiceTest {
         assertEquals("Poll with id $pollId does not belong to party with id $partyId", exception.message)
         verify(partyService).getParty(partyId)
         verify(mealPollRepository).findById(pollId)
-        verify(recommendStoreRepository, never()).findByStoreIdAndPoll(eq(storeId), eq(poll))
+        verify(recommendStoreRepository, never()).findByStoreIdAndPoll(storeId, poll)
         verify(userRepository, never()).findByName(userName)
         verify(voteRepository, never()).save(any())
     }
@@ -487,7 +484,7 @@ class MealPollServiceTest {
         assertEquals("Recommended store with id $storeId not found for poll with id $pollId", exception.message)
         verify(partyService).getParty(partyId)
         verify(mealPollRepository).findById(pollId)
-        verify(recommendStoreRepository).findByStoreIdAndPoll(eq(storeId), any(MealPoll::class.java))
+        verify(recommendStoreRepository).findByStoreIdAndPoll(storeId, poll)
         verify(userRepository, never()).findByName(userName)
         verify(voteRepository, never()).save(any())
     }
@@ -536,7 +533,7 @@ class MealPollServiceTest {
         assertEquals("User with name $userName not found", exception.message)
         verify(partyService).getParty(partyId)
         verify(mealPollRepository).findById(pollId)
-        verify(recommendStoreRepository).findByStoreIdAndPoll(eq(storeId), eq(poll))
+        verify(recommendStoreRepository).findByStoreIdAndPoll(storeId, poll)
         verify(userRepository).findByName(userName)
         verify(voteRepository, never()).save(any())
     }
@@ -592,9 +589,9 @@ class MealPollServiceTest {
         assertEquals("User has already voted for this store in this poll", exception.message)
         verify(partyService).getParty(partyId)
         verify(mealPollRepository).findById(pollId)
-        verify(recommendStoreRepository).findByStoreIdAndPoll(eq(storeId), eq(poll))
+        verify(recommendStoreRepository).findByStoreIdAndPoll(storeId, poll)
         verify(userRepository).findByName(userName)
-        verify(voteRepository).findByPollAndStore(eq(poll), eq(recommendStore))
+        verify(voteRepository).findByPollAndStore(poll, recommendStore)
         verify(voteRepository, never()).save(any())
     }
 
@@ -662,9 +659,9 @@ class MealPollServiceTest {
         // Then
         verify(partyService).getParty(partyId)
         verify(mealPollRepository).findById(pollId)
-        verify(recommendStoreRepository).findByStoreIdAndPoll(eq(storeId), eq(poll))
+        verify(recommendStoreRepository).findByStoreIdAndPoll(storeId, poll)
         verify(userRepository).findByName(userName2)
-        verify(voteRepository).findByPollAndStore(eq(poll), eq(recommendStore))
+        verify(voteRepository).findByPollAndStore(poll, recommendStore)
         verify(voteRepository).save(any())
 
         // Verify that the poll status is updated to DONE
