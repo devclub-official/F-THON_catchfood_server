@@ -3,6 +3,9 @@ package flab.kr.catchfood.party.core.ui
 import com.fasterxml.jackson.databind.ObjectMapper
 import flab.kr.catchfood.party.core.application.PartyService
 import flab.kr.catchfood.party.core.domain.Party
+import flab.kr.catchfood.party.core.domain.PartyMember
+import flab.kr.catchfood.party.core.domain.PartyMemberId
+import flab.kr.catchfood.party.core.ui.dto.AddPartyMemberRequest
 import flab.kr.catchfood.party.core.ui.dto.CreatePartyRequest
 import flab.kr.catchfood.user.application.UserService
 import flab.kr.catchfood.user.domain.User
@@ -140,6 +143,148 @@ class PartyControllerTest {
         // When & Then
         mockMvc.perform(get("/parties"))
             .andExpect(status().isUnauthorized)
+            .andExpect(jsonPath("$.status").value("FAIL"))
+            .andExpect(jsonPath("$.message").isNotEmpty)
+    }
+
+    @Test
+    fun `GET parties-id-members should return members of a party`() {
+        // Given
+        val partyId = 1L
+        val user1 = User(id = 1L, name = "user1")
+        val user2 = User(id = 2L, name = "user2")
+        val members = listOf(user1, user2)
+
+        `when`(partyService.getPartyMembersById(partyId)).thenReturn(members)
+
+        // When & Then
+        mockMvc.perform(get("/parties/$partyId/members"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.status").value("SUCCESS"))
+            .andExpect(jsonPath("$.data[0]").value(user1.name))
+            .andExpect(jsonPath("$.data[1]").value(user2.name))
+            .andExpect(jsonPath("$.message").doesNotExist())
+
+        verify(partyService).getPartyMembersById(partyId)
+    }
+
+    @Test
+    fun `GET parties-id-members should return bad request when party does not exist`() {
+        // Given
+        val partyId = 999L
+
+        `when`(partyService.getPartyMembersById(partyId))
+            .thenThrow(IllegalArgumentException("Party with id $partyId not found"))
+
+        // When & Then
+        mockMvc.perform(get("/parties/$partyId/members"))
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.status").value("FAIL"))
+            .andExpect(jsonPath("$.message").isNotEmpty)
+    }
+
+    @Test
+    fun `POST parties-id-members should add a member to a party`() {
+        // Given
+        val partyId = 1L
+        val request = AddPartyMemberRequest(memberName = "newMember")
+        val party = Party(id = partyId, name = "Test Party")
+        val user = User(id = 2L, name = request.memberName)
+        val partyMember = PartyMember(
+            id = PartyMemberId(userId = user.id!!, partyId = partyId),
+            user = user,
+            party = party
+        )
+
+        `when`(partyService.addMemberToParty(partyId, request.memberName)).thenReturn(partyMember)
+
+        // When & Then
+        mockMvc.perform(
+            post("/parties/$partyId/members")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.status").value("SUCCESS"))
+            .andExpect(jsonPath("$.data").doesNotExist())
+            .andExpect(jsonPath("$.message").doesNotExist())
+
+        verify(partyService).addMemberToParty(partyId, request.memberName)
+    }
+
+    @Test
+    fun `POST parties-id-members should return bad request when request is invalid`() {
+        // Given
+        val partyId = 1L
+        val request = AddPartyMemberRequest(memberName = "")
+
+        // When & Then
+        mockMvc.perform(
+            post("/parties/$partyId/members")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.status").value("FAIL"))
+            .andExpect(jsonPath("$.message").isNotEmpty)
+    }
+
+    @Test
+    fun `POST parties-id-members should return bad request when party does not exist`() {
+        // Given
+        val partyId = 999L
+        val request = AddPartyMemberRequest(memberName = "newMember")
+
+        `when`(partyService.addMemberToParty(partyId, request.memberName))
+            .thenThrow(IllegalArgumentException("Party with id $partyId not found"))
+
+        // When & Then
+        mockMvc.perform(
+            post("/parties/$partyId/members")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.status").value("FAIL"))
+            .andExpect(jsonPath("$.message").isNotEmpty)
+    }
+
+    @Test
+    fun `POST parties-id-members should return bad request when user does not exist`() {
+        // Given
+        val partyId = 1L
+        val request = AddPartyMemberRequest(memberName = "nonExistentUser")
+
+        `when`(partyService.addMemberToParty(partyId, request.memberName))
+            .thenThrow(IllegalArgumentException("User with name ${request.memberName} not found"))
+
+        // When & Then
+        mockMvc.perform(
+            post("/parties/$partyId/members")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.status").value("FAIL"))
+            .andExpect(jsonPath("$.message").isNotEmpty)
+    }
+
+    @Test
+    fun `POST parties-id-members should return bad request when user is already a member`() {
+        // Given
+        val partyId = 1L
+        val request = AddPartyMemberRequest(memberName = "existingMember")
+
+        `when`(partyService.addMemberToParty(partyId, request.memberName))
+            .thenThrow(IllegalArgumentException("User ${request.memberName} is already a member of this party"))
+
+        // When & Then
+        mockMvc.perform(
+            post("/parties/$partyId/members")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.status").value("FAIL"))
             .andExpect(jsonPath("$.message").isNotEmpty)
     }

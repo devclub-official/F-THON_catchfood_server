@@ -2,6 +2,7 @@ package flab.kr.catchfood.party.core.ui
 
 import flab.kr.catchfood.common.ui.dto.ApiResponse
 import flab.kr.catchfood.party.core.application.PartyService
+import flab.kr.catchfood.party.core.ui.dto.AddPartyMemberRequest
 import flab.kr.catchfood.party.core.ui.dto.CreatePartyRequest
 import flab.kr.catchfood.party.core.ui.dto.PartyResponse
 import flab.kr.catchfood.user.domain.User
@@ -35,5 +36,20 @@ class PartyController(private val partyService: PartyService) {
             )
         }
         return ApiResponse.success(response)
+    }
+
+    @GetMapping("/parties/{id}/members")
+    fun getPartyMembers(@PathVariable id: Long): ApiResponse<List<String>> {
+        val members = partyService.getPartyMembersById(id)
+        return ApiResponse.success(members.map { it.name })
+    }
+
+    @PostMapping("/parties/{id}/members")
+    fun addPartyMember(
+        @PathVariable id: Long,
+        @Valid @RequestBody request: AddPartyMemberRequest
+    ): ApiResponse<Void> {
+        partyService.addMemberToParty(id, request.memberName)
+        return ApiResponse.success()
     }
 }
