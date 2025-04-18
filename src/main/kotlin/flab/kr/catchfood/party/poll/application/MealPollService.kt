@@ -1,5 +1,6 @@
 package flab.kr.catchfood.party.poll.application
 
+import flab.kr.catchfood.openai.service.ChatGPTService
 import flab.kr.catchfood.party.core.application.PartyService
 import flab.kr.catchfood.party.core.domain.Party
 import flab.kr.catchfood.party.poll.application.dto.PreferenceRequestDto
@@ -18,7 +19,8 @@ class MealPollService(
     private val recommendStoreRepository: RecommendStoreRepository,
     private val voteRepository: VoteRepository,
     private val userRepository: UserRepository,
-    private val storeRepository: StoreRepository
+    private val storeRepository: StoreRepository,
+    private val chatGPTService: ChatGPTService
 ) {
 
     @Transactional
@@ -128,21 +130,54 @@ class MealPollService(
         // Check if all party members have registered preferences
         val allMembersRegisteredPreferences = partyMembers.all { member -> usersWithPreferences.contains(member.id) }
 
-        // If all members have registered preferences, add all stores as recommended stores
+        // If all members have registered preferences, use ChatGPT to recommend stores
         if (allMembersRegisteredPreferences) {
-            // Get all stores
-            val allStores = storeRepository.findAll()
-
             // Check if there are already recommended stores for this poll
             val existingRecommendedStores = recommendStoreRepository.findByPoll(poll)
             if (existingRecommendedStores.isEmpty()) {
-                // Add all stores as recommended stores
-                allStores.forEach { store ->
-                    val recommendStore = RecommendStore(
-                        poll = poll,
-                        store = store
-                    )
-                    recommendStoreRepository.save(recommendStore)
+                // Get all stores
+                val allStores = storeRepository.findAll()
+
+                // Use ChatGPT to recommend stores
+                val recommendedStoreIds = chatGPTService.recommendStores(
+                    stores = allStores,
+                    partyMembers = partyMembers,
+                    preferences = preferences
+                )
+
+                // Add recommended stores
+                val addedStores = mutableListOf<Long>()
+                recommendedStoreIds.forEach { storeId ->
+                    val store = storeRepository.findById(storeId).orElse(null)
+                    if (store != null) {
+                        val recommendStore = RecommendStore(
+                            poll = poll,
+                            store = store
+                        )
+                        recommendStoreRepository.save(recommendStore)
+                        addedStores.add(storeId)
+                    }
+                }
+
+                // If fewer than 3 stores were recommended, add random stores to reach minimum of 3
+                if (addedStores.size < 3) {
+                    // Log the issue
+                    println("ChatGPT recommended fewer than 3 stores (${addedStores.size}). Adding random stores to reach minimum of 3.")
+
+                    // Get stores that weren't recommended
+                    val remainingStores = allStores.filter { store -> store.id !in addedStores }
+
+                    // Shuffle the remaining stores and select enough to reach minimum of 3
+                    val additionalStores = remainingStores.shuffled().take(3 - addedStores.size)
+
+                    // Add the additional stores
+                    additionalStores.forEach { store ->
+                        val recommendStore = RecommendStore(
+                            poll = poll,
+                            store = store
+                        )
+                        recommendStoreRepository.save(recommendStore)
+                    }
                 }
             }
         }
