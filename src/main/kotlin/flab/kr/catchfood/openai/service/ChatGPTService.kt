@@ -6,12 +6,18 @@ import com.theokanning.openai.service.OpenAiService
 import flab.kr.catchfood.party.poll.domain.Preference
 import flab.kr.catchfood.store.domain.Store
 import flab.kr.catchfood.user.domain.User
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.util.*
 
 @Service
 class ChatGPTService(private val openAiService: OpenAiService) {
+
+    companion object {
+        val log: Logger = LoggerFactory.getLogger(ChatGPTService::class.java)
+    }
 
     @Value("\${openai.model}")
     private lateinit var model: String
@@ -37,6 +43,7 @@ class ChatGPTService(private val openAiService: OpenAiService) {
     ): List<Long> {
         // Prepare the prompt for ChatGPT
         val prompt = buildPrompt(stores, partyMembers, preferences)
+        log.info("Prompt for ChatGPT: $prompt")
 
         // Create the chat completion request
         val chatCompletionRequest = ChatCompletionRequest.builder()
