@@ -1,5 +1,6 @@
 package flab.kr.catchfood.common.ui
 
+import flab.kr.catchfood.common.exception.UnauthorizedException
 import flab.kr.catchfood.common.ui.dto.ApiResponse
 import org.springframework.http.HttpStatus
 import org.springframework.validation.FieldError
@@ -26,6 +27,12 @@ class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     fun handleIllegalArgumentException(ex: IllegalArgumentException): ApiResponse<Any> {
         return ApiResponse.fail(ex.message ?: "Bad request")
+    }
+
+    @ExceptionHandler(UnauthorizedException::class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    fun handleUnauthorizedException(ex: UnauthorizedException): ApiResponse<Any> {
+        return ApiResponse.fail(ex.message ?: "Unauthorized")
     }
 
     @ExceptionHandler(Exception::class)
