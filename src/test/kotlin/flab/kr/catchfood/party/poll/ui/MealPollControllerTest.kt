@@ -7,6 +7,7 @@ import flab.kr.catchfood.party.poll.application.MealPollService
 import flab.kr.catchfood.party.poll.application.PartyPollsDto
 import flab.kr.catchfood.party.poll.application.PollDetailsDto
 import flab.kr.catchfood.party.poll.application.RecommendedStoreDto
+import flab.kr.catchfood.party.poll.application.dto.PreferenceRequestDto
 import flab.kr.catchfood.party.poll.domain.MealPoll
 import flab.kr.catchfood.party.poll.domain.MealPollRepository
 import flab.kr.catchfood.party.poll.domain.MealPollStatus
@@ -198,6 +199,49 @@ class MealPollControllerTest {
 
         // When & Then
         mockMvc.perform(get("/parties/$partyId/polls/$pollId"))
+            .andExpect(status().isUnauthorized)
+            .andExpect(jsonPath("$.status").value("FAIL"))
+            .andExpect(jsonPath("$.message").isNotEmpty)
+    }
+
+    @Test
+    fun `POST parties-id-polls-id-preferences should add preference and return success`() {
+        // Given
+        val partyId = 1L
+        val pollId = 1L
+        val user = User(id = 1L, name = "testUser")
+        val preferenceRequest = PreferenceRequestDto(preference = "매운 거")
+
+        `when`(userService.getUserByName(user.name)).thenReturn(user)
+
+        // When & Then
+        mockMvc.perform(
+            post("/parties/$partyId/polls/$pollId/preferences")
+                .header("X-User-Name", user.name)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(preferenceRequest))
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.status").value("SUCCESS"))
+            .andExpect(jsonPath("$.data").doesNotExist())
+            .andExpect(jsonPath("$.message").doesNotExist())
+
+        verify(mealPollService).addPreference(partyId, pollId, user.name, preferenceRequest)
+    }
+
+    @Test
+    fun `POST parties-id-polls-id-preferences should return unauthorized when user header is missing`() {
+        // Given
+        val partyId = 1L
+        val pollId = 1L
+        val preferenceRequest = PreferenceRequestDto(preference = "매운 거")
+
+        // When & Then
+        mockMvc.perform(
+            post("/parties/$partyId/polls/$pollId/preferences")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(preferenceRequest))
+        )
             .andExpect(status().isUnauthorized)
             .andExpect(jsonPath("$.status").value("FAIL"))
             .andExpect(jsonPath("$.message").isNotEmpty)

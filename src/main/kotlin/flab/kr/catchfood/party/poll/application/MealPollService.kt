@@ -2,6 +2,7 @@ package flab.kr.catchfood.party.poll.application
 
 import flab.kr.catchfood.party.core.application.PartyService
 import flab.kr.catchfood.party.core.domain.Party
+import flab.kr.catchfood.party.poll.application.dto.PreferenceRequestDto
 import flab.kr.catchfood.party.poll.domain.*
 import flab.kr.catchfood.store.application.dto.RepresentativeMenuDto
 import flab.kr.catchfood.user.domain.UserRepository
@@ -87,6 +88,28 @@ class MealPollService(
             preferences = preferences,
             recommendedStores = recommendedStores
         )
+    }
+
+    @Transactional
+    fun addPreference(partyId: Long, pollId: Long, userName: String, preferenceRequest: PreferenceRequestDto) {
+        val party = partyService.getParty(partyId)
+        val poll = mealPollRepository.findById(pollId)
+            .orElseThrow { IllegalArgumentException("Poll with id $pollId not found") }
+
+        if (poll.party.id != party.id) {
+            throw IllegalArgumentException("Poll with id $pollId does not belong to party with id $partyId")
+        }
+
+        val user = userRepository.findByName(userName)
+            ?: throw IllegalArgumentException("User with name $userName not found")
+
+        val preference = Preference(
+            user = user,
+            poll = poll,
+            content = preferenceRequest.preference
+        )
+
+        preferenceRepository.save(preference)
     }
 }
 
